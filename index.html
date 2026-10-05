@@ -217,11 +217,10 @@
               <p>Not included: inclination, eccentricity, rain fade, link margin, polarisation, or the difference between a 3 dB geometric crossing and the C/N at which a particular carrier fails. For a carrier-specific threshold, use the actual link budget.</p>
             </div>
           </details>
-          <!--
           <details id="batchCard">
             <summary>Batch CSV</summary>
             <div class="method">
-              <p>Each row is one station. Columns: <code>id, site, lat, lat_hemisphere, lon, lon_hemisphere, orbital_slot_east, year, band, frequency_ghz, antenna_m, timezone</code>. Hemisphere is North/South or East/West. Band is C, Ku, Ka or Custom.</p>
+              <p>Each row is one station. Columns: <code>id, site, lat, lat_hemisphere, lon, lon_hemisphere, orbital_slot_east, year, band, frequency_ghz, antenna_m, timezone</code>. Use North or South, and East or West, as whole words. Band is C, Ku, Ka or Custom.</p>
               <div class="actions">
                 <button class="ghost" id="tplBtn" type="button">Download template</button>
                 <button class="ghost" id="batchBtn" type="button">Run batch file</button>
@@ -230,7 +229,6 @@
               <p class="hint" id="batchMsg"></p>
             </div>
           </details>
-          -->
         </section>
       </div>
     </div>
@@ -344,8 +342,8 @@
       const hpbw = k * lambda / dia;
       const events = [];
       const windows = [
-        { name: "Around Mar–Apr", start: Date.UTC(year, 1, 1), end: Date.UTC(year, 4, 5) },
-        { name: "Around Sep–Oct", start: Date.UTC(year, 7, 15), end: Date.UTC(year, 10, 20) }
+        { name: "Around Mar-Apr", start: Date.UTC(year, 1, 1), end: Date.UTC(year, 4, 5) },
+        { name: "Around Sep-Oct", start: Date.UTC(year, 7, 15), end: Date.UTC(year, 10, 20) }
       ];
       windows.forEach((w) => {
         for (let day = w.start; day < w.end; day += 86400000) {
@@ -425,7 +423,7 @@
         $("tables").innerHTML = "<p class='empty'>No sun transit inside the beam for this antenna, band and year. A larger antenna or a lower frequency narrows or widens the window.</p>";
         return;
       }
-      const seasons = ["Around Mar–Apr", "Around Sep–Oct"];
+      const seasons = ["Around Mar-Apr", "Around Sep-Oct"];
       let html = "";
       seasons.forEach((name) => {
         const rows = result.events.filter((e) => e.season === name);
@@ -455,7 +453,7 @@
       return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     }
     function download(name, text) {
-      const blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+      const blob = new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = name;
@@ -489,13 +487,13 @@
       download("sun-outage-result.csv", head + "\n" + lines.join("\n") + "\n");
     });
 
-    $("tplBtn").addEventListener("click", () => {
+    if ($("tplBtn")) $("tplBtn").addEventListener("click", () => {
       const head = "id,site,lat,lat_hemisphere,lon,lon_hemisphere,orbital_slot_east,year,band,frequency_ghz,antenna_m,timezone";
       const sample = "1,Hong Kong,22.3193,North,114.1694,East,122,2026,Ku,12.25,2.4,8\n2,Singapore,1.3521,North,103.8198,East,100.5,2026,Ka,20.20,1.8,8\n3,Sydney,33.8688,South,151.2093,East,120,2026,C,4.00,4.5,10";
       download("sun-outage-template.csv", head + "\n" + sample + "\n");
     });
-    $("batchBtn").addEventListener("click", () => $("batchFile").click());
-    $("batchFile").addEventListener("change", async (ev) => {
+    if ($("batchBtn")) $("batchBtn").addEventListener("click", () => $("batchFile").click());
+    if ($("batchFile")) $("batchFile").addEventListener("change", async (ev) => {
       const file = ev.target.files[0];
       if (!file) return;
       const text = await file.text();
@@ -506,10 +504,14 @@
       let n = 0;
       rows.forEach((line) => {
         const c = line.split(",").map((s) => s.trim());
-        const hem = (v) => /s|w/i.test(v) ? -1 : 1;
+        const hemisphereSign = (value, axis) => {
+          const v = String(value || "").trim().toLowerCase();
+          if (axis === "lat") return (v === "s" || v === "south") ? -1 : 1;
+          return (v === "w" || v === "west") ? -1 : 1;
+        };
         try {
-          const lat = Math.abs(Number(c[idx("lat")])) * hem(c[idx("lat_hemisphere")]);
-          const lon = Math.abs(Number(c[idx("lon")])) * hem(c[idx("lon_hemisphere")]);
+          const lat = Math.abs(Number(c[idx("lat")])) * hemisphereSign(c[idx("lat_hemisphere")], "lat");
+          const lon = Math.abs(Number(c[idx("lon")])) * hemisphereSign(c[idx("lon_hemisphere")], "lon");
           const sat = Number(c[idx("orbital_slot_east")]);
           const year = Number(c[idx("year")]);
           const freq = Number(c[idx("frequency_ghz")]);
