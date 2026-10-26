@@ -15,4 +15,4 @@ Geometric only. The satellite is assumed geostationary at zero inclination.
 
 `id, site, lat, lat_hemisphere, lon, lon_hemisphere, orbital_slot_east, year, band, frequency_ghz, antenna_m, timezone`
 
-Hemisphere values: `North` / `South`, `East` / `West`. Band: `C`, `Ku`, `Ka` or `Custom`. Frequency is still required.
+Hemisphere values: `North` / `South`, `East` / `West`. Band: `C`, `Ku`, `Ka` or `Custom`.
