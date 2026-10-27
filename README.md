@@ -8,7 +8,7 @@ Geometric only. The satellite is assumed geostationary at zero inclination.
 
 - Look angles: Earth radius 6,378.137 km, GEO radius 42,164.17 km.
 - Beamwidth: `θ = 70 λ / D` degrees. `λ = 0.299792458 / f_GHz` metres.
-- Event while Sun–satellite separation is below `θ/2 + solar radius`.
+- Event while Sun–satellite separation is below `θ/2 + solar radius + margin`.
 - Tolerance versus an observed outage is about 5 to 10 minutes. Inclination, station-keeping and link margin are not modelled.
 
 ## Batch columns
