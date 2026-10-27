@@ -189,7 +189,7 @@
 
           <label for="margin">Planning margin (deg)</label>
           <input id="margin" type="number" min="0" max="0.5" step="0.01" value="0.03" />
-          <div class="hint">Added to half the beam and the solar radius. 0.03 matches the Kratos gateway check. Use 0 for a pure geometric result.</div>
+          <div class="hint">Added to half the beam and the solar radius. 0.03</div>
 
           <div class="actions">
             <button class="primary" id="calcBtn" type="button">Calculate</button>
@@ -314,7 +314,7 @@
       const alt = Math.asin(Math.max(-1, Math.min(1, sAlt))) * 180 / Math.PI;
       const az = Math.atan2(-Math.sin(ha), Math.tan(dec) * Math.cos(phi) - Math.sin(phi) * Math.cos(ha)) * 180 / Math.PI;
       const R = 1.00014 - 0.01671 * Math.cos(g) - 0.00014 * Math.cos(2 * g);
-      const srad = 0.2666 / R;
+      const srad = 0.267 / R;
       return { alt, az: (az + 360) % 360, srad };
     }
 
