@@ -187,6 +187,10 @@
           <input id="kfact" type="number" min="55" max="85" step="0.5" value="70" />
           <div class="hint">70 is the usual planning value for a parabolic reflector. Outage is inside the half-power beam plus the solar disk.</div>
 
+          <label for="margin">Planning margin (deg)</label>
+          <input id="margin" type="number" min="0" max="0.5" step="0.01" value="0.03" />
+          <div class="hint">Added to half the beam and the solar radius. 0.03 matches the Kratos gateway check. Use 0 for a pure geometric result.</div>
+
           <div class="actions">
             <button class="primary" id="calcBtn" type="button">Calculate</button>
             <button class="ghost" id="resetBtn" type="button">Reset</button>
@@ -213,7 +217,7 @@
             <div class="method">
               <p>The satellite is treated as geostationary at zero inclination. Look angles use Earth radius 6,378.137 km and GEO radius 42,164.17 km. Azimuth is from true north, clockwise.</p>
               <p>Half-power beamwidth is <code>θ = k λ / D</code>, with λ = 0.299792458 / f(GHz) metres and k = 70 unless changed. Default receive frequencies are C 3.9 GHz, Ku 12.25 GHz and Ka 20.20 GHz.</p>
-              <p>An event is declared while the Sun–satellite angular separation is below <code>θ/2 + R<sub>sun</sub></code>. Solar radius is about 0.267°. The Sun’s position is a low-precision ecliptic model, accurate to well under the 5–10 minute planning tolerance. The March and October clock times differ because of the equation of time.</p>
+              <p>An event is declared while the Sun–satellite angular separation is below <code>θ/2 + R<sub>sun</sub> + margin</code>. Solar radius is about 0.267°. The default margin is 0.03°. The Sun’s position is a low-precision ecliptic model. The March and October clock times differ because of the equation of time.</p>
               <p>Not included: inclination, eccentricity, rain fade, link margin, polarisation, or the difference between a 3 dB geometric crossing and the C/N at which a particular carrier fails.</p>
             </div>
           </details>
@@ -326,20 +330,21 @@
     function pad(n) { return String(n).padStart(2, "0"); }
     function fmtTime(date, tz) {
       const t = new Date(date.getTime() + tz * 3600000);
-      return pad(t.getUTCHours()) + ":" + pad(t.getUTCMinutes());
+      return pad(t.getUTCHours()) + ":" + pad(t.getUTCMinutes()) + ":" + pad(t.getUTCSeconds());
     }
     function fmtDate(date, tz) {
       const t = new Date(date.getTime() + tz * 3600000);
       return t.getUTCFullYear() + "-" + pad(t.getUTCMonth() + 1) + "-" + pad(t.getUTCDate());
     }
     function fmtUtc(date) {
-      return pad(date.getUTCHours()) + ":" + pad(date.getUTCMinutes()) + " UTC";
+      return pad(date.getUTCHours()) + ":" + pad(date.getUTCMinutes()) + ":" + pad(date.getUTCSeconds()) + " UTC";
     }
 
-    function predict(lat, lon, sat, year, freq, dia, k, tz) {
+    function predict(lat, lon, sat, year, freq, dia, k, tz, margin) {
       const lookAng = look(lat, lon, sat);
       const lambda = 0.299792458 / freq;
       const hpbw = k * lambda / dia;
+      const padMargin = Number(margin) || 0;
       const events = [];
       const windows = [
         { name: "Around Mar-Apr", start: Date.UTC(year, 1, 1), end: Date.UTC(year, 4, 5) },
@@ -350,18 +355,18 @@
           let best = 999, bestT = null, srad = 0.267;
           const hits = [];
           const t0 = day - tz * 3600000;
-          for (let i = 0; i <= 24 * 180; i++) {
-            const tt = new Date(t0 + i * 20000);
+          for (let i = 0; i <= 24 * 720; i++) {
+            const tt = new Date(t0 + i * 5000);
             const sun = sunAltAz(tt, lat, lon);
             const s = sep(lookAng.az, lookAng.el, sun.az, sun.alt);
-            const thr = hpbw / 2 + sun.srad;
+            const thr = hpbw / 2 + sun.srad + padMargin;
             if (s < best) { best = s; bestT = tt; srad = sun.srad; }
             if (s < thr && sun.alt > -2) hits.push(tt);
           }
           if (!hits.length) continue;
           const start = hits[0];
           const end = hits[hits.length - 1];
-          const dur = (end - start) / 60000 + 20 / 60;
+          const dur = (end - start) / 60000 + 5 / 60;
           events.push({
             season: w.name,
             date: fmtDate(bestT, tz),
@@ -389,6 +394,7 @@
       const dia = Number($("dia").value);
       const k = Number($("kfact").value);
       const tz = Number($("tz").value);
+      const margin = Number($("margin").value) || 0;
       if (![lat, lon, sat, year, freq, dia, k, tz].every(Number.isFinite)) throw new Error("Please complete every numeric field.");
       if (Math.abs(lat) > 81) throw new Error("Latitude must be within 81°.");
       if (Math.abs(lon) > 180) throw new Error("Longitude must be within 180°.");
@@ -396,7 +402,7 @@
       if (year < 2020 || year > 2045) throw new Error("Year must be from 2020 to 2045.");
       if (freq < 1 || freq > 50) throw new Error("Frequency must be from 1 to 50 GHz.");
       if (dia < 0.3 || dia > 32) throw new Error("Antenna diameter must be from 0.3 to 32 m.");
-      return { lat, lon, sat, year, freq, dia, k, tz, site: $("site").value.trim() };
+      return { lat, lon, sat, year, freq, dia, k, tz, margin, site: $("site").value.trim() };
     }
 
     function render(result, input) {
@@ -440,7 +446,7 @@
     function calculate() {
       try {
         const input = readForm();
-        const result = predict(input.lat, input.lon, input.sat, input.year, input.freq, input.dia, input.k, input.tz);
+        const result = predict(input.lat, input.lon, input.sat, input.year, input.freq, input.dia, input.k, input.tz, input.margin);
         render(result, input);
       } catch (err) {
         $("warn").hidden = false;
@@ -469,7 +475,7 @@
       $("sat").value = "122"; $("slot").value = "122";
       $("year").value = "2026"; $("tz").value = "8";
       $("band").value = "12.25"; $("freq").value = "12.25";
-      $("dia").value = "2.4"; $("kfact").value = "70";
+      $("dia").value = "2.4"; $("kfact").value = "70"; $("margin").value = "0.03";
       $("tables").innerHTML = "<p class='empty'>Enter a station and an orbital slot, then calculate.</p>";
       $("stats").hidden = true; $("remark").hidden = true; $("warn").hidden = true;
       $("badge").textContent = "Ready";
@@ -517,7 +523,7 @@
           const freq = Number(c[idx("frequency_ghz")]);
           const dia = Number(c[idx("antenna_m")]);
           const tz = Number(c[idx("timezone")]);
-          const res = predict(lat, lon, sat, year, freq, dia, 70, tz);
+          const res = predict(lat, lon, sat, year, freq, dia, 70, tz, 0.03);
           if (!res.events.length) {
             out.push([c[idx("id")], c[idx("site")], "", "", "", "", "", "", "", res.lookAng.az.toFixed(2), res.lookAng.el.toFixed(2), res.hpbw.toFixed(3), "no event in beam"].map(csvEscape).join(","));
           }
