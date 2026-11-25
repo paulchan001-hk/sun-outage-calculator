@@ -272,8 +272,8 @@
     $("lonH").addEventListener("change", suggestTz);
 
     function suggestTz() {
-      const lon = signed($("lon").value, $("lonH").value);
-      if (Number.isFinite(lon)) $("tz").value = Math.round(lon / 15 * 2) / 2;
+      //const lon = signed($("lon").value, $("lonH").value);
+      //if (Number.isFinite(lon)) $("tz").value = Math.round(lon / 15 * 2) / 2;
     }
 
     function signed(mag, hem) {
@@ -494,7 +494,7 @@
 
     if ($("tplBtn")) $("tplBtn").addEventListener("click", () => {
       const head = "id,site,lat,lat_hemisphere,lon,lon_hemisphere,orbital_slot_east,year,band,frequency_ghz,antenna_m,timezone";
-      const sample = "1,Hong Kong,22.3193,North,114.1694,East,122,2026,Ku,12.25,2.4,8\n2,Singapore,1.3521,North,103.8198,East,100.5,2026,Ka,20.20,1.8,8\n3,Sydney,33.8688,South,151.2093,East,120,2026,C,4.00,4.5,10";
+      const sample = "1,Hong Kong,22.3193,North,114.1694,East,122,2026,Ku,12.25,2.4,8\n2,Singapore,1.3521,North,103.8198,East,100.5,2026,Ka,20.20,1.8,8\n3,Sydney,33.8688,South,151.2093,East,120,2026,C,3.9,4.5,10";
       download("sun-outage-template.csv", head + "\n" + sample + "\n");
     });
     if ($("batchBtn")) $("batchBtn").addEventListener("click", () => $("batchFile").click());
